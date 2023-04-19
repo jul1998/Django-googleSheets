@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'djoser',
     'accounts',
     'rest_framework',
+    'googleSheets',
 ]
 
 MIDDLEWARE = [
@@ -134,8 +135,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'task_list_react/build/static')]
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-AUTH_USER_MODEL = 'accounts.UserAccount'
-
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+

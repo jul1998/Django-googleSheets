@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 import os.path
 import json
+from django.contrib.auth.decorators import login_required
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -11,25 +12,31 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from .models import Sheet
+
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = "1bJmGf94Q2aFlwMG1hkFn0UsoZAq7YCMknr5v0oDK4o4"
 
+
 def get_credentials():
     credentials = None
     if 'token.json' in os.listdir():
-        credentials = Credentials.from_authorized_user_file('token.json', SCOPES)
+        credentials = Credentials.from_authorized_user_file(
+            'token.json', SCOPES)
 
     if not credentials or not credentials.valid:
         if credentials and credentials.expired and credentials.refresh_token:
             credentials.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
             credentials = flow.run_local_server(port=0)
         with open('token.json', 'w') as token:
             token.write(credentials.to_json())
 
     return credentials
+
 
 def calculate_sheet(request):
     credentials = get_credentials()
@@ -80,33 +87,34 @@ def calculate_sheet(request):
             'error': str(err)
         }
         return render(request, 'error.html', context)
-    
+
+@login_required(login_url='/accounts/login/')
 def create_sheet(request):
-    print("Creating new sheet")
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
-    print(body)
     sheet_name = body["sheet_name"]
-    print(sheet_name)
 
+    user = request.user
+    print(user)
 
     credentials = credentials = get_credentials()
 
 # Create the new sheet
     try:
         service = build('sheets', 'v4', credentials=credentials)
-        
 
         spreadsheet = service.spreadsheets().create(body={
             'properties': {'title': sheet_name},
             'sheets': [{'properties': {'title': 'Sheet1'}}],
-            
+
 
         }).execute()
     except HttpError as e:
         return JsonResponse({'error': str(e)})
-    
+
     # Return the new sheet ID to the client
+    new_sheet = Sheet(sheet_id=spreadsheet['spreadsheetId'], sheet_name=sheet_name, user=user)
+    new_sheet.save()
     return JsonResponse({'sheet_id': spreadsheet['spreadsheetId']})
 
 
