@@ -85,8 +85,9 @@ def create_sheet(request):
     print("Creating new sheet")
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
+    print(body)
     sheet_name = body["sheet_name"]
-    print(body_unicode)
+    print(sheet_name)
 
 
     credentials = credentials = get_credentials()
