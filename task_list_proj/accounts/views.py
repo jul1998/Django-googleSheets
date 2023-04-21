@@ -15,17 +15,17 @@ def register(request):
         email = body.get('email')
         password = body.get('password')
         if not all([username, email, password]):
-            return JsonResponse({'error': 'Please fill all fields'})
+            return JsonResponse({'msg': 'Please fill all fields'}, status=400)
         
         try:
             user = User.objects.create_user(username=username, email=email, password=password)
             user.save()
             login(request, user)
-            return JsonResponse({'success': 'User created successfully'})
+            return JsonResponse({'msg': 'User created successfully'}, status=201)
         except Exception as e:
-            return JsonResponse({'error': str(e)})
+            return JsonResponse({'error': str(e)}, status=400) 
     else:
-        return JsonResponse({"error": "Method not allowed"})
+        return JsonResponse({"msg": "Method not allowed"}, status=400)
     
 def login_view(request):
    if request.method == 'POST':
