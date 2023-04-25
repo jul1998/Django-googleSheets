@@ -45,7 +45,7 @@ def register(request):
 
 def logout_view(request):
     logout(request)
-    return JsonResponse({'msg': 'Logout successful'})
+    return JsonResponse({"success": True,'msg': 'Logout successful'}, status=200)
 
 
 def login_view(request):
@@ -58,7 +58,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            response = JsonResponse({'msg': 'Login successful', 'user_id': user.id, "success": True}, status=200)
+            response = JsonResponse({'msg': 'Login successful', 'user_id': user.id, "success": True, "token":create_auth_token(user.id) }, status=200)
             response.set_cookie('auth_token', create_auth_token(user.id), httponly=True, secure=False, samesite='None')    
             return response 
         else:

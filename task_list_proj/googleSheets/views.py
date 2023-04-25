@@ -75,7 +75,7 @@ def create_sheet(request):
     new_sheet = Sheet(
         sheet_id=spreadsheet['spreadsheetId'], sheet_name=sheet_name, user=user)
     new_sheet.save()
-    return JsonResponse({'sheet_id': spreadsheet['spreadsheetId']})
+    return JsonResponse({"success":True ,'sheet_id': spreadsheet['spreadsheetId']}, status=200)
 
 
 def get_values(request):
