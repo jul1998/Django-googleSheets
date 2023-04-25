@@ -59,6 +59,8 @@ MIDDLEWARE = [
 ]
 CORS_ORIGIN_WHITELIST = ['http://localhost:3000',]
 CORS_ORIGIN_ALLOW_ALL = True
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 ROOT_URLCONF = 'task_list_proj.urls'
 ALLOWED_HOSTS = ['*']

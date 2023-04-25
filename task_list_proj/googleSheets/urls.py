@@ -2,7 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("edit/", views.calculate_sheet, name="edit"),
     path("create/", views.create_sheet, name="create"),
     path("read/", views.get_values, name="read"),
     path("batch_read/", views.batch_get_values, name="batch_read"),

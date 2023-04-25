@@ -11,12 +11,13 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
+import google.auth.exceptions
 from .models import Sheet
+from django.contrib.auth.models import User
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-SPREADSHEET_ID = "1bJmGf94Q2aFlwMG1hkFn0UsoZAq7YCMknr5v0oDK4o4"
+
 
 
 def get_credentials():
@@ -35,85 +36,44 @@ def get_credentials():
         with open('token.json', 'w') as token:
             token.write(credentials.to_json())
 
+    # Always refresh credentials before returning
+    credentials.refresh(Request())
     return credentials
 
 
-def calculate_sheet(request):
-    credentials = get_credentials()
-
-    try:
-        service = build('sheets', 'v4', credentials=credentials)
-        sheet = service.spreadsheets()
-
-        results = []
-        for row in range(2, 6):
-            num1_result = sheet.values().get(spreadsheetId=SPREADSHEET_ID,
-                                            range=f"Sheet1!A{row}").execute()
-            num1 = num1_result.get('values', [])
-            if not num1:
-                print(f"No value found in row {row} column A")
-                continue
-
-            num2_result = sheet.values().get(spreadsheetId=SPREADSHEET_ID,
-                                            range=f"Sheet1!B{row}").execute()
-            num2 = num2_result.get('values', [])
-            if not num2:
-                print(f"No value found in row {row} column B")
-                continue
-
-            result = int(num1[0][0]) + int(num2[0][0])
-            print(result)
-
-            sheet.values().update(spreadsheetId=SPREADSHEET_ID,
-                                  range=f"Sheet1!C{row}",
-                                  valueInputOption="USER_ENTERED",
-                                  body={"values": [[result]]}).execute()
-
-            sheet.values().update(spreadsheetId=SPREADSHEET_ID,
-                                  range=f"Sheet1!D{row}",
-                                  valueInputOption="USER_ENTERED",
-                                  body={"values": [["Ready"]]}).execute()
-
-            results.append(result)
-
-        context = {
-            'results': results
-        }
-        return HttpResponse(f"Results: {results}")
-
-    except HttpError as err:
-        print(err)
-        context = {
-            'error': str(err)
-        }
-        return render(request, 'error.html', context)
-
-@login_required(login_url='/accounts/login/')
 def create_sheet(request):
+    #if not request.user.is_authenticated:
+    #    return JsonResponse({'error': 'You must be logged in to create a sheet'})
+    
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
     sheet_name = body["sheet_name"]
+    user_id = body["user_id"]
 
-    user = request.user
+
+    user = User.objects.get(id=user_id)
     print(user)
 
-    credentials = credentials = get_credentials()
+    # delete the token file to force getting new credentials
+    #if 'token.json' in os.listdir():
+        #os.remove('token.json')
 
-# Create the new sheet
+    credentials = get_credentials()
+
+    # Create the new sheet
     try:
         service = build('sheets', 'v4', credentials=credentials)
 
         spreadsheet = service.spreadsheets().create(body={
             'properties': {'title': sheet_name},
             'sheets': [{'properties': {'title': 'Sheet1'}}],
-
-
         }).execute()
     except HttpError as e:
         return JsonResponse({'error': str(e)})
 
     # Return the new sheet ID to the client
-    new_sheet = Sheet(sheet_id=spreadsheet['spreadsheetId'], sheet_name=sheet_name, user=user)
+    new_sheet = Sheet(
+        sheet_id=spreadsheet['spreadsheetId'], sheet_name=sheet_name, user=user)
     new_sheet.save()
     return JsonResponse({'sheet_id': spreadsheet['spreadsheetId']})
 
@@ -125,9 +85,7 @@ def get_values(request):
     spreadsheet_id = body.get('spreadsheet_id')
     range_name = body.get('range_name')
 
-    
     credentials = get_credentials()
-    
 
     try:
         service = build('sheets', 'v4', credentials=credentials)
@@ -140,13 +98,13 @@ def get_values(request):
     except HttpError as error:
         print(f"An error occurred: {error}")
         return JsonResponse({'error': str(error)})
-    
+
 
 def batch_get_values(request):
     body_unicode = request.body.decode("utf-8")
     body = json.loads(body_unicode)
     spreadsheet_id = body.get("spreadsheet_id")
-    range_names = body.get("range_names").split(",") # e.g. "A1:B2,A1:B2"
+    range_names = body.get("range_names").split(",")  # e.g. "A1:B2,A1:B2"
 
     credentials = get_credentials()
 
@@ -161,7 +119,7 @@ def batch_get_values(request):
     except HttpError as error:
         print(f"An error has occurred: {error}")
         return JsonResponse({"error": str(error)})
-    
+
 
 def update_values(request):
     body_unicode = request.body.decode('utf-8')
@@ -171,7 +129,6 @@ def update_values(request):
     values = body.get('values')
     value_input_option = body.get('value_input_option')
 
-    
     credentials = get_credentials()
 
     try:
@@ -191,18 +148,18 @@ def update_values(request):
                 valueInputOption=value_input_option, body=body).execute()
             print(f"{result.get('updatedCells')} cells updated in {r}.")
 
-
         print(f"{result.get('updatedCells')} cells updated.")
         return JsonResponse({'updated_cells': result.get('updatedCells')})
     except HttpError as error:
         print(f"An error occurred: {error}")
         return JsonResponse({'error': str(error)})
-    
+
+
 def batch_update_values(request):
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
     spreadsheet_id = body.get('spreadsheet_id')
-    range_name = body.get('range_name').split(',') # e.g. "A1:B2,A1:B2"
+    range_name = body.get('range_name').split(',')  # e.g. "A1:B2,A1:B2"
     values = body.get('values')
     value_input_option = body.get('value_input_option')
 
@@ -210,7 +167,6 @@ def batch_update_values(request):
 
     try:
         service = build('sheets', 'v4', credentials=credentials)
-
 
         data = []
         for r in range(len(range_name)):
@@ -233,5 +189,3 @@ def batch_update_values(request):
     except HttpError as error:
         print(f"An error occurred: {error}")
         return JsonResponse({'error': str(error)})
-    
-
