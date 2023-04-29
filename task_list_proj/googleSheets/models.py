@@ -9,3 +9,14 @@ class Sheet(models.Model):
     sheet_name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.sheet_name} - {self.user.username}"
+    
+    def serialize(self):
+        return {
+            "sheet_id": self.sheet_id,
+            "sheet_name": self.sheet_name,
+            "created_at": self.created_at,
+            "user": self.user.username
+        }
+

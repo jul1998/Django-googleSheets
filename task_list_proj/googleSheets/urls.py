@@ -7,4 +7,5 @@ urlpatterns = [
     path("batch_read/", views.batch_get_values, name="batch_read"),
     path("write/", views.update_values, name="write"),
     path("batch_write/", views.batch_update_values, name="batch_write"),
+    path("delete/", views.delete_sheet, name="delete"),
 ]

@@ -189,3 +189,30 @@ def batch_update_values(request):
     except HttpError as error:
         print(f"An error occurred: {error}")
         return JsonResponse({'error': str(error)})
+    
+def delete_sheet(request):
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    spreadsheet_id = body.get('spreadsheet_id')
+    print(spreadsheet_id)
+
+    credentials = get_credentials()
+
+    if request.method == "DELETE":
+
+        try:
+            service = build('sheets', 'v4', credentials=credentials)
+
+            result = service.spreadsheets().delete(
+                spreadsheetId=spreadsheet_id).execute()
+            print(f"Spreadsheet {spreadsheet_id} deleted.")
+
+         
+
+
+            return JsonResponse({'success': True})
+        except HttpError as error:
+            print(f"An error occurred: {error}")
+            return JsonResponse({'error': str(error)})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})

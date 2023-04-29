@@ -12,6 +12,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('gSheet/', include('googleSheets.urls')),
     path('accounts/', include('accounts.urls')),
+    path("user/", include('userSheets.urls')),
 
 ]
 
