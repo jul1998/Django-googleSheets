@@ -16,7 +16,7 @@ from .models import Sheet
 from django.contrib.auth.models import User
 
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 
 
@@ -54,7 +54,7 @@ def create_sheet(request):
     user = User.objects.get(id=user_id)
     print(user)
 
-    # delete the token file to force getting new credentials
+    #delete the token file to force getting new credentials
     #if 'token.json' in os.listdir():
         #os.remove('token.json')
 
@@ -192,23 +192,24 @@ def batch_update_values(request):
     
 def delete_sheet(request):
     body_unicode = request.body.decode('utf-8')
+    print(body_unicode)
     body = json.loads(body_unicode)
     spreadsheet_id = body.get('spreadsheet_id')
-    print(spreadsheet_id)
+    print(body)
 
     credentials = get_credentials()
 
     if request.method == "DELETE":
 
         try:
-            service = build('sheets', 'v4', credentials=credentials)
+            service = build('drive', 'v3', credentials=credentials)
 
-            result = service.spreadsheets().delete(
-                spreadsheetId=spreadsheet_id).execute()
+            result = service.files().delete(fileId=spreadsheet_id).execute()
             print(f"Spreadsheet {spreadsheet_id} deleted.")
 
-         
-
+            sheet_to_delete = Sheet.objects.get(sheet_id=spreadsheet_id)
+            sheet_to_delete.delete()
+            
 
             return JsonResponse({'success': True})
         except HttpError as error:
